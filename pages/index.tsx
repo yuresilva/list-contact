@@ -1,20 +1,16 @@
+import { useState } from "react";
 import router, { useRouter } from 'next/router';
 
 import Head from 'next/head'
-import { useEffect, useState } from "react";
-
 import { IContact } from '../src/interfaces/global';
-import Link, { LinkProps } from 'next/link';
-import { Trash, PencilSimple, ArrowDown, CloudArrowDown, Plus } from '@phosphor-icons/react';
+import Link from 'next/link';
+import { Trash, PencilSimple, Plus } from '@phosphor-icons/react';
 import { Loading } from '../src/components/Loading';
 import { useContacts } from '../src/hooks/useContact';
 import { Header } from '../src/components/Header';
 import { api } from './api/axios';
-
-
-
-
-
+import { Dialog } from '../src/components/Dialog';
+import toast from 'react-hot-toast';
 
 function formatContact(contact: IContact) {
 
@@ -43,27 +39,39 @@ function formatContact(contact: IContact) {
 
 export default function Home() {
   const { data, isLoading, error, isFetching, refetch } = useContacts();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const confirmContactDelete = (contactId: number) => {
+    console.log('deletou');
+    console.log(contactId);
+
+    setShowDeleteModal(false)
+    if (showDeleteModal) {
+      api.delete(`/schedule/${contactId}`).then(response => {
+        console.log(response);
+        toast.success('Contato deletado com sucesso');
+        refetch();
+      }
+      ).catch(error => {
+        toast.error('Erro ao deletar contato');
+        console.log(error);
+      })
+    } else {
+      console.log('não deletou');
+    }
+  }
+
+  const cancelContactDelete = () => {
+    setShowDeleteModal(false)
+  }
 
   function handleDeleteContact(contactId: number) {
-
-    api.delete(`/schedule/${contactId}`).then(response => {
-      console.log(response);
-      refetch();
-    }
-    ).catch(error => {
-      console.log(error);
-    })
-
-
+    setShowDeleteModal(true);
   }
-
 
   function handleEditContact(contactId: number) {
-
     router.push(`/editar-contato/${contactId}`);
   }
-
-
 
 
   return (
@@ -115,46 +123,55 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody>
-                {data?.map((contact: IContact, index: number) => {
-                  const formattedContact = formatContact(contact);
-                  return (
-                    <tr
-                      key={contact.id}
-                      className={" odd:bg-gray-100"}
-                    >
-                      <td className={` `}>
-                        {formattedContact.name}
-                      </td>
-                      <td className=" text-neutral-400">
-                        {formattedContact.email}
-                      </td>
-                      <td className="  text-neutral-400">
-                        {formattedContact.numbers.map(numb => numb.number)}
-                      </td>
-                      <td className="  text-neutral-400">
-                        {formattedContact.cpf}
-                      </td>
-                      <td className="text-neutral-400 ">
-                        {formattedContact.date_born}
-                      </td>
+                {data ? (
+                  data.length === 0 ? (
 
-                      <td>
-                        <div className="flex gap-5 cursor-pointer ">
-                          <Trash
-                            size={24}
-                            className="hover:text-primary_accent"
-                            onClick={() => handleDeleteContact(contact.id)}
-                          />
-                          <PencilSimple
-                            size={24}
-                            className="hover:text-primary_accent"
-                            onClick={() => handleEditContact(contact.id)} />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                    <div>Nenhum contato adicionado, clique no botão Adicionar</div>
+
+                  ) : (
+                    data.map((contact: IContact, index: number) => {
+                      const formattedContact = formatContact(contact);
+                      return (
+
+                        <tr key={contact.id} className={" odd:bg-gray-100"}>
+                          <td className={` `}>{formattedContact.name}</td>
+                          <td className=" text-neutral-400">{formattedContact.email}</td>
+                          <td className="  text-neutral-400">
+                            {formattedContact.numbers.map((numb) => numb.number)}
+                          </td>
+                          <td className="  text-neutral-400">{formattedContact.cpf}</td>
+                          <td className="text-neutral-400 ">{formattedContact.date_born}</td>
+                          <td>
+                            <div className="flex gap-5 cursor-pointer ">
+                              <Trash
+                                size={24}
+                                className="hover:text-primary_accent"
+                                onClick={() => handleDeleteContact(contact.id)}
+                              />
+                              <Dialog
+                                cancelButtonText="Cancelar"
+                                confirmButtonText="Deletar"
+                                onConfirm={() => confirmContactDelete(contact.id)}
+                                onCancel={cancelContactDelete}
+                                title="Tem certeza de que deseja deletar o contato?"
+                                isOpen={showDeleteModal}
+                                onClose={() => setShowDeleteModal(false)}
+                              />
+                              <PencilSimple
+                                size={24}
+                                className="hover:text-primary_accent"
+                                onClick={() => handleEditContact(contact.id)}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+
+                      );
+                    })
+                  )
+                ) : null}
               </tbody>
+
               <tfoot>
                 <div className="flex justify-center">
                 </div>
@@ -165,7 +182,6 @@ export default function Home() {
 
       )
       }
-
     </main >
 
   )

@@ -13,9 +13,6 @@ import { IContact } from "../../../src/interfaces/global";
 import { api } from "../../api/axios";
 
 
-
-
-
 const RegisterSchema = yup.object().shape({
     name: yup.string().required('Nome é obrigatório'),
     email: yup.string().email('Email inválido').required('Email é obrigatório'),
